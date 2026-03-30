@@ -1,7 +1,11 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session'); 
 const app = express();
 const sessionConfig = require('./config/sessionConfig');
+const connectDB = require('./config/db');
+
+connectDB(); 
 
 
 const authRoutes = require('./routes/auth');

@@ -1,54 +1,80 @@
 const express = require('express');
 const router = express.Router();
 
-const users = require('../data/users');
+const User = require('../models/User');
 
 // SIGNUP
-router.post("/signup", (req, res) => {
+router.post('/signup', async (req, res) => {
     const { username, password } = req.body;
 
-    if (!username || !password) {
-        return res.status(400).json({ 
-            message: "username and password are required" 
+    try {
+        // Check if user already exists
+        const existingUser = await User.findOne({ username });
+
+        if (existingUser) {
+            return res.status(400).json({
+                message: "User already exists"
+            });
+        }
+
+        // Create new user
+        const newUser = new User({
+            username,
+            password
+        });
+
+        // Save to database
+        await newUser.save();
+
+        res.json({
+            message: "User created successfully"
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            message: "Server error"
         });
     }
-
-    const existingUser = users.find(
-        user => user.username === username
-    );
-
-    if (existingUser) {
-        return res.status(409).json({ 
-            message: "username already exists" 
-        });
-    }
-
-    users.push({ username, password });
-
-    res.status(201).json({ 
-        message: "user created successfully" 
-    });
 });
 
 // LOGIN
-router.post("/login", (req, res) => {
+router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
-    const user = users.find(
-        user => user.username === username && user.password === password
-    );
+    try {
+       
+        const user = await User.findOne({ username });
 
-    if (!user) {
-        return res.status(401).json({ 
-            message: "invalid credentials" 
+        
+        if (!user) {
+            return res.status(400).json({
+                message: "User not found"
+            });
+        }
+
+      
+        if (user.password !== password) {
+            return res.status(400).json({
+                message: "Invalid credentials"
+            });
+        }
+
+      
+        req.session.user = { 
+            id: user._id,
+            username: user.username
+        };
+
+        res.json({ 
+            message: "Login successful" 
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            message: "Server error"
         });
     }
-
-    req.session.user = { username: user.username };
-
-    res.json({ 
-        message: "Login successful" 
-    });
 });
+
 
 module.exports = router;
